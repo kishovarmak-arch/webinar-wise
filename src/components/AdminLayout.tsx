@@ -3,11 +3,12 @@ import { Navigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { store } from "@/lib/store";
+import { Badge } from "@/components/ui/badge";
 
 export function AdminLayout({ children }: { children: ReactNode }) {
-  if (!store.isLoggedIn()) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!store.isLoggedIn()) return <Navigate to="/login" replace />;
+  const role = store.getRole();
+  if (role === 'student') return <Navigate to="/student" replace />;
 
   return (
     <SidebarProvider>
@@ -18,15 +19,14 @@ export function AdminLayout({ children }: { children: ReactNode }) {
             <SidebarTrigger />
             <div className="flex-1" />
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>Admin</span>
+              <Badge variant="outline" className="capitalize">{role}</Badge>
+              <span>{store.getUserName()}</span>
               <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-semibold">
-                A
+                {store.getUserName().charAt(0)}
               </div>
             </div>
           </header>
-          <main className="flex-1 p-6 overflow-auto">
-            {children}
-          </main>
+          <main className="flex-1 p-6 overflow-auto">{children}</main>
         </div>
       </div>
     </SidebarProvider>

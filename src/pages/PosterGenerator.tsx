@@ -1,57 +1,25 @@
-import { useState, useRef } from "react";
+import { useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { store } from "@/lib/store";
-import { PosterTheme } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Download } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import html2canvas from "html2canvas";
 import { toast } from "sonner";
-
-interface ThemeConfig {
-  name: string;
-  id: PosterTheme;
-  bg: string;
-  textColor: string;
-  accentColor: string;
-  borderStyle: string;
-  fontStyle: string;
-  overlay: string;
-}
-
-const themes: ThemeConfig[] = [
-  { id: 'professional-blue', name: 'Professional Blue', bg: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)', textColor: '#ffffff', accentColor: '#60a5fa', borderStyle: 'border-2 border-blue-300/30', fontStyle: 'font-sans', overlay: '' },
-  { id: 'elegant-dark', name: 'Elegant Dark', bg: 'linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 50%, #16213e 100%)', textColor: '#f0f0f0', accentColor: '#e2b85e', borderStyle: 'border border-yellow-600/30', fontStyle: 'font-serif', overlay: '' },
-  { id: 'tech-gradient', name: 'Tech Gradient', bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', textColor: '#ffffff', accentColor: '#c4b5fd', borderStyle: '', fontStyle: 'font-mono', overlay: '' },
-  { id: 'minimal-white', name: 'Minimal White', bg: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)', textColor: '#1e293b', accentColor: '#3b82f6', borderStyle: 'border-2 border-gray-200', fontStyle: 'font-sans', overlay: '' },
-  { id: 'vibrant-orange', name: 'Vibrant Orange', bg: 'linear-gradient(135deg, #ff6b35 0%, #f7931e 100%)', textColor: '#ffffff', accentColor: '#fff3e0', borderStyle: '', fontStyle: 'font-sans', overlay: '' },
-  { id: 'academic-green', name: 'Academic Green', bg: 'linear-gradient(135deg, #134e5e 0%, #71b280 100%)', textColor: '#ffffff', accentColor: '#a7f3d0', borderStyle: 'border-2 border-emerald-300/30', fontStyle: 'font-serif', overlay: '' },
-  { id: 'creative-purple', name: 'Creative Purple', bg: 'linear-gradient(135deg, #6b21a8 0%, #a855f7 50%, #ec4899 100%)', textColor: '#ffffff', accentColor: '#f0abfc', borderStyle: '', fontStyle: 'font-sans', overlay: '' },
-  { id: 'bold-red', name: 'Bold Red', bg: 'linear-gradient(135deg, #7f1d1d 0%, #dc2626 100%)', textColor: '#ffffff', accentColor: '#fca5a5', borderStyle: 'border-2 border-red-300/20', fontStyle: 'font-sans', overlay: '' },
-  { id: 'soft-pastel', name: 'Soft Pastel', bg: 'linear-gradient(135deg, #fce4ec 0%, #e8eaf6 50%, #e0f7fa 100%)', textColor: '#37474f', accentColor: '#7c4dff', borderStyle: 'border border-pink-200', fontStyle: 'font-sans', overlay: '' },
-  { id: 'neon-glow', name: 'Neon Glow', bg: 'linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 100%)', textColor: '#00ff88', accentColor: '#ff00ff', borderStyle: 'border border-green-400/50', fontStyle: 'font-mono', overlay: '' },
-  { id: 'classic-gold', name: 'Classic Gold', bg: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)', textColor: '#d4af37', accentColor: '#ffd700', borderStyle: 'border-2 border-yellow-600/40', fontStyle: 'font-serif', overlay: '' },
-  { id: 'modern-teal', name: 'Modern Teal', bg: 'linear-gradient(135deg, #0d9488 0%, #06b6d4 100%)', textColor: '#ffffff', accentColor: '#a7f3d0', borderStyle: '', fontStyle: 'font-sans', overlay: '' },
-  { id: 'geometric', name: 'Geometric', bg: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%)', textColor: '#e0e7ff', accentColor: '#818cf8', borderStyle: 'border border-indigo-400/30', fontStyle: 'font-sans', overlay: '' },
-  { id: 'abstract-wave', name: 'Abstract Wave', bg: 'linear-gradient(135deg, #0c4a6e 0%, #0ea5e9 50%, #38bdf8 100%)', textColor: '#ffffff', accentColor: '#bae6fd', borderStyle: '', fontStyle: 'font-sans', overlay: '' },
-];
 
 export default function PosterGenerator() {
   const { id } = useParams();
   const navigate = useNavigate();
   const webinar = store.getWebinar(id || "");
-  const [selectedTheme, setSelectedTheme] = useState<PosterTheme>('professional-blue');
   const posterRef = useRef<HTMLDivElement>(null);
 
   if (!webinar) return <div className="text-center py-12 text-muted-foreground">Webinar not found</div>;
 
-  const theme = themes.find(t => t.id === selectedTheme)!;
-
   const handleDownload = async () => {
     if (!posterRef.current) return;
     try {
-      const canvas = await html2canvas(posterRef.current, { scale: 2, useCORS: true });
+      const canvas = await html2canvas(posterRef.current, { scale: 2, useCORS: true, backgroundColor: null });
       const link = document.createElement('a');
       link.download = `${webinar.title.replace(/\s+/g, '_')}_poster.png`;
       link.href = canvas.toDataURL('image/png');
@@ -61,6 +29,10 @@ export default function PosterGenerator() {
       toast.error("Failed to download poster");
     }
   };
+
+  const regUrl = `${window.location.origin}/register/${webinar.id}`;
+  const dateFormatted = new Date(webinar.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+  const timeFormatted = webinar.time ? new Date(`2000-01-01T${webinar.time}`).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
 
   return (
     <div className="space-y-6">
@@ -75,84 +47,169 @@ export default function PosterGenerator() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-4">
           <Card>
-            <CardHeader><CardTitle className="text-lg">Select Theme</CardTitle></CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-2">
-                {themes.map(t => (
-                  <button
-                    key={t.id}
-                    onClick={() => setSelectedTheme(t.id)}
-                    className={`p-3 rounded-lg text-xs font-medium text-left transition-all ${selectedTheme === t.id ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-border'}`}
-                    style={{ background: t.bg, color: t.textColor }}
-                  >
-                    {t.name}
-                  </button>
-                ))}
-              </div>
+            <CardHeader><CardTitle className="text-lg">Poster Details</CardTitle></CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <p><strong>Title:</strong> {webinar.title}</p>
+              <p><strong>Mentor:</strong> {webinar.mentorName}</p>
+              <p><strong>Domain:</strong> {webinar.domain}</p>
+              <p><strong>Date:</strong> {dateFormatted}</p>
+              <p><strong>Time:</strong> {timeFormatted}</p>
+              <p><strong>Platform:</strong> {webinar.platform || 'Microsoft Teams'}</p>
+              <p><strong>Fee:</strong> ₹99</p>
             </CardContent>
           </Card>
           <Button className="w-full" onClick={handleDownload}><Download className="mr-2 h-4 w-4" />Download Poster</Button>
         </div>
 
         <div className="lg:col-span-2 flex justify-center">
+          {/* Poster Canvas — Dark theme matching reference */}
           <div
             ref={posterRef}
-            className={`w-[500px] h-[700px] rounded-2xl p-8 flex flex-col justify-between relative overflow-hidden ${theme.borderStyle} ${theme.fontStyle}`}
-            style={{ background: theme.bg, color: theme.textColor }}
+            className="relative overflow-hidden"
+            style={{
+              width: 500, height: 750,
+              background: 'radial-gradient(ellipse at top right, #2a0a0a 0%, #0a0a0a 40%, #0d0d0d 100%)',
+              fontFamily: "'Segoe UI', sans-serif",
+              color: '#ffffff',
+            }}
           >
-            {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-40 h-40 rounded-full opacity-10" style={{ background: theme.accentColor, filter: 'blur(60px)' }} />
-            <div className="absolute bottom-0 left-0 w-60 h-60 rounded-full opacity-10" style={{ background: theme.accentColor, filter: 'blur(80px)' }} />
+            {/* Border glow */}
+            <div style={{ position: 'absolute', inset: 8, border: '1px solid rgba(220,38,38,0.3)', borderRadius: 8, pointerEvents: 'none' }} />
 
-            <div className="relative z-10 space-y-4">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold tracking-[0.2em] uppercase opacity-80">NSCET PRESENTS</p>
-                <p className="text-xs px-3 py-1 rounded-full border" style={{ borderColor: theme.accentColor + '40', color: theme.accentColor }}>WEBINAR</p>
-              </div>
-              <div className="mt-6">
-                <h2 className="text-3xl font-bold leading-tight">{webinar.title}</h2>
-                <p className="mt-2 text-sm opacity-80 leading-relaxed">{webinar.topic}</p>
-              </div>
-            </div>
+            {/* Star particles */}
+            {[...Array(20)].map((_, i) => (
+              <div key={i} style={{
+                position: 'absolute',
+                width: 2, height: 2,
+                background: 'rgba(255,255,255,0.4)',
+                borderRadius: '50%',
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+              }} />
+            ))}
 
-            <div className="relative z-10 space-y-5">
-              <div className="flex items-center gap-4">
-                {webinar.mentorPhoto ? (
-                  <img src={webinar.mentorPhoto} alt={webinar.mentorName} className="w-16 h-16 rounded-full object-cover border-2" style={{ borderColor: theme.accentColor }} />
-                ) : (
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold" style={{ background: theme.accentColor + '30', color: theme.accentColor }}>
-                    {webinar.mentorName.charAt(0)}
+            {/* Top glow */}
+            <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, background: 'radial-gradient(circle, rgba(220,38,38,0.15) 0%, transparent 70%)' }} />
+
+            {/* Content */}
+            <div style={{ position: 'relative', zIndex: 10, padding: '24px 28px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+
+              {/* College Name */}
+              <div style={{ textAlign: 'center', marginBottom: 12 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, letterSpacing: 1, color: '#e0e0e0' }}>NADAR SARASWATHI COLLEGE OF</p>
+                <p style={{ fontSize: 13, fontWeight: 700, letterSpacing: 1, color: '#dc2626' }}>ENGINEERING & TECHNOLOGY</p>
+              </div>
+
+              {/* Premium Webinar badge */}
+              <div style={{ textAlign: 'center', margin: '8px 0 16px' }}>
+                <span style={{
+                  display: 'inline-block', padding: '6px 24px',
+                  border: '1px solid rgba(220,38,38,0.5)', borderRadius: 20,
+                  fontSize: 11, fontWeight: 600, letterSpacing: 3, color: '#dc2626',
+                  textTransform: 'uppercase',
+                }}>Premium Webinar</span>
+              </div>
+
+              {/* Title */}
+              <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                <h2 style={{ fontSize: 28, fontWeight: 900, lineHeight: 1.2, textTransform: 'uppercase', letterSpacing: 1 }}>
+                  {webinar.title}
+                </h2>
+              </div>
+
+              {/* Info card */}
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(30,30,30,0.9) 0%, rgba(20,20,20,0.95) 100%)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 12, padding: 16,
+                display: 'flex', gap: 12, alignItems: 'center',
+                marginBottom: 16, flex: '0 0 auto',
+              }}>
+                {/* Mentor */}
+                <div style={{ flex: '0 0 100px', textAlign: 'center' }}>
+                  {webinar.mentorPhoto ? (
+                    <img src={webinar.mentorPhoto} alt={webinar.mentorName} style={{
+                      width: 80, height: 80, borderRadius: '50%', objectFit: 'cover',
+                      border: '2px solid #dc2626', margin: '0 auto',
+                    }} />
+                  ) : (
+                    <div style={{
+                      width: 80, height: 80, borderRadius: '50%', margin: '0 auto',
+                      background: 'linear-gradient(135deg, #1a1a1a, #2a2a2a)',
+                      border: '2px solid #dc2626',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 28, fontWeight: 700, color: '#dc2626',
+                    }}>{webinar.mentorName.charAt(0)}</div>
+                  )}
+                  <p style={{ fontSize: 9, color: '#dc2626', fontWeight: 700, letterSpacing: 2, marginTop: 6, textTransform: 'uppercase' }}>Expert Mentor</p>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginTop: 2 }}>{webinar.mentorName}</p>
+                </div>
+
+                {/* Details */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <InfoRow icon="📅" label="DATE" value={dateFormatted} />
+                  <InfoRow icon="🕐" label="TIME" value={timeFormatted} />
+                  <InfoRow icon="💻" label="PLATFORM" value={webinar.platform || 'Live on Teams'} />
+                </div>
+
+                {/* QR */}
+                <div style={{ flex: '0 0 100px', textAlign: 'center' }}>
+                  <div style={{
+                    background: '#ffffff', borderRadius: 8, padding: 8,
+                    display: 'inline-block',
+                  }}>
+                    <QRCodeSVG value={regUrl} size={80} />
                   </div>
-                )}
-                <div>
-                  <p className="text-sm opacity-60">Speaker</p>
-                  <p className="font-semibold text-lg">{webinar.mentorName}</p>
-                  <p className="text-xs opacity-60">{webinar.department}</p>
+                  <p style={{ fontSize: 8, color: '#888', marginTop: 6, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase' }}>Scan to Join</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 rounded-xl" style={{ background: theme.accentColor + '15' }}>
-                  <p className="text-[10px] uppercase opacity-60">Date</p>
-                  <p className="text-sm font-semibold">{new Date(webinar.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                </div>
-                <div className="p-3 rounded-xl" style={{ background: theme.accentColor + '15' }}>
-                  <p className="text-[10px] uppercase opacity-60">Time</p>
-                  <p className="text-sm font-semibold">{webinar.time}</p>
-                </div>
-                <div className="p-3 rounded-xl" style={{ background: theme.accentColor + '15' }}>
-                  <p className="text-[10px] uppercase opacity-60">Fee</p>
-                  <p className="text-sm font-semibold">₹{webinar.registrationFee}</p>
-                </div>
+              {/* Spacer */}
+              <div style={{ flex: 1 }} />
+
+              {/* Register Button */}
+              <div style={{ textAlign: 'center', marginBottom: 12 }}>
+                <div style={{
+                  display: 'inline-block', padding: '12px 48px',
+                  background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                  borderRadius: 30, fontSize: 16, fontWeight: 800,
+                  letterSpacing: 4, textTransform: 'uppercase',
+                  color: '#ffffff',
+                }}>Register Now</div>
               </div>
 
-              <div className="text-center pt-2">
-                <p className="text-[10px] uppercase opacity-50 tracking-wider">Register Now</p>
-                <p className="text-xs opacity-60 mt-1">{window.location.origin}/register/{webinar.id}</p>
+              {/* Fee */}
+              <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                <span style={{
+                  display: 'inline-block', padding: '6px 20px',
+                  border: '1px solid rgba(220,38,38,0.4)', borderRadius: 20,
+                  fontSize: 13, color: '#dc2626', fontWeight: 600,
+                }}>Registration Fee: ₹ 99</span>
+              </div>
+
+              {/* Footer */}
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: 8, letterSpacing: 3, color: '#666', textTransform: 'uppercase', marginBottom: 4 }}>Exclusively Organized By</p>
+                <p style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', letterSpacing: 1 }}>NADAR SARASWATHI COLLEGE OF ENGINEERING & TECHNOLOGY</p>
               </div>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function InfoRow({ icon, label, value }: { icon: string; label: string; value: string }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 8,
+      background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '6px 10px',
+    }}>
+      <span style={{ fontSize: 14 }}>{icon}</span>
+      <div>
+        <p style={{ fontSize: 8, color: '#888', fontWeight: 600, letterSpacing: 1.5, textTransform: 'uppercase' }}>{label}</p>
+        <p style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>{value}</p>
       </div>
     </div>
   );

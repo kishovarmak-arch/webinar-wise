@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { store } from "@/lib/store";
 import { Certificate } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -26,12 +26,12 @@ export default function Certificates() {
     const newCerts = store.generateCertificates(selectedWebinar);
     setCertificates(store.getCertificates(selectedWebinar));
     if (newCerts.length > 0) toast.success(`${newCerts.length} certificates generated!`);
-    else toast.info("No new eligible participants. Certificates require matching registered + attended Student IDs.");
+    else toast.info("No new eligible participants. Registered email must match attended email.");
   };
 
   const handleDownload = async () => {
     if (!certRef.current) return;
-    const canvas = await html2canvas(certRef.current, { scale: 2 });
+    const canvas = await html2canvas(certRef.current, { scale: 2, backgroundColor: '#ffffff' });
     const link = document.createElement("a");
     link.download = `certificate_${previewCert?.participantName.replace(/\s+/g, '_')}.png`;
     link.href = canvas.toDataURL("image/png");
@@ -46,19 +46,19 @@ export default function Certificates() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Certificates</h1>
-          <p className="text-muted-foreground">Generate and manage participation certificates</p>
+          <p className="text-muted-foreground">Generate professional certificates for eligible participants</p>
         </div>
         <Button onClick={handleGenerate} disabled={!selectedWebinar}><RefreshCw className="mr-2 h-4 w-4" />Generate Certificates</Button>
       </div>
 
       <Card className="bg-accent/30 border-primary/20">
         <CardContent className="p-4 text-sm text-muted-foreground">
-          <strong className="text-foreground">Business Rule:</strong> Certificates are only generated for participants whose <strong>registered Student ID</strong> matches their <strong>attended Student ID</strong>. Non-registered attendees cannot receive certificates.
+          <strong className="text-foreground">Rule:</strong> Certificates are only generated when the <strong>registered email</strong> matches the <strong>attended email</strong> from the uploaded attendance file.
         </CardContent>
       </Card>
 
       <Select value={selectedWebinar} onValueChange={setSelectedWebinar}>
-        <SelectTrigger className="w-full sm:w-[300px]"><SelectValue placeholder="Select a webinar (or view all)" /></SelectTrigger>
+        <SelectTrigger className="w-full sm:w-[300px]"><SelectValue placeholder="Select a webinar" /></SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Webinars</SelectItem>
           {webinars.map(w => <SelectItem key={w.id} value={w.id}>{w.title}</SelectItem>)}
@@ -98,26 +98,93 @@ export default function Certificates() {
         </CardContent>
       </Card>
 
+      {/* Professional Light Theme Certificate */}
       <Dialog open={!!previewCert} onOpenChange={() => setPreviewCert(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Certificate Preview</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader><DialogTitle>Certificate Preview</DialogTitle></DialogHeader>
           {previewCert && (
             <div className="space-y-4">
-              <div ref={certRef} className="bg-white border-8 border-double border-primary/30 rounded-lg p-10 text-center space-y-4" style={{ aspectRatio: '1.414/1' }}>
-                <div className="text-xs tracking-[0.3em] text-muted-foreground uppercase">NSCET — Department of Higher Education</div>
-                <div className="text-3xl font-serif font-bold text-primary">Certificate of Participation</div>
-                <div className="w-24 h-0.5 bg-primary/30 mx-auto" />
-                <p className="text-muted-foreground">This is to certify that</p>
-                <p className="text-2xl font-bold text-foreground">{previewCert.participantName}</p>
-                <p className="text-sm text-muted-foreground">Student ID: {previewCert.studentId}</p>
-                <p className="text-muted-foreground">has successfully participated in the webinar</p>
-                <p className="text-lg font-semibold text-primary">"{previewCert.webinarTitle}"</p>
-                <p className="text-sm text-muted-foreground">held on {new Date(previewCert.webinarDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                <div className="pt-8 flex justify-between items-end px-8">
-                  <div className="text-center"><div className="w-32 border-t border-muted-foreground/30" /><p className="text-xs text-muted-foreground mt-1">Organizer</p></div>
-                  <div className="text-center"><div className="w-32 border-t border-muted-foreground/30" /><p className="text-xs text-muted-foreground mt-1">Head of Department</p></div>
+              <div
+                ref={certRef}
+                style={{
+                  width: 700, minHeight: 500, aspectRatio: '1.414/1',
+                  background: 'linear-gradient(135deg, #fefefe 0%, #f8f6f0 100%)',
+                  padding: 0, position: 'relative', overflow: 'hidden',
+                  fontFamily: "'Georgia', 'Times New Roman', serif",
+                }}
+              >
+                {/* Decorative border */}
+                <div style={{ position: 'absolute', inset: 12, border: '2px solid #c9a96e', borderRadius: 4 }} />
+                <div style={{ position: 'absolute', inset: 16, border: '1px solid #e8d5a8', borderRadius: 2 }} />
+
+                {/* Corner ornaments */}
+                {['top-left', 'top-right', 'bottom-left', 'bottom-right'].map(corner => (
+                  <div key={corner} style={{
+                    position: 'absolute',
+                    [corner.includes('top') ? 'top' : 'bottom']: 20,
+                    [corner.includes('left') ? 'left' : 'right']: 20,
+                    width: 30, height: 30,
+                    borderTop: corner.includes('top') ? '3px solid #c9a96e' : 'none',
+                    borderBottom: corner.includes('bottom') ? '3px solid #c9a96e' : 'none',
+                    borderLeft: corner.includes('left') ? '3px solid #c9a96e' : 'none',
+                    borderRight: corner.includes('right') ? '3px solid #c9a96e' : 'none',
+                  }} />
+                ))}
+
+                {/* Content */}
+                <div style={{ position: 'relative', zIndex: 10, padding: '40px 50px', textAlign: 'center' }}>
+                  {/* College */}
+                  <p style={{ fontSize: 11, letterSpacing: 4, color: '#8b7355', textTransform: 'uppercase', marginBottom: 4 }}>
+                    Nadar Saraswathi College of Engineering and Technology
+                  </p>
+
+                  {/* Title */}
+                  <h1 style={{ fontSize: 32, fontWeight: 700, color: '#2d5016', marginTop: 16, marginBottom: 4, letterSpacing: 2 }}>
+                    Certificate of Participation
+                  </h1>
+
+                  {/* Divider */}
+                  <div style={{ width: 120, height: 2, background: 'linear-gradient(90deg, transparent, #c9a96e, transparent)', margin: '12px auto' }} />
+
+                  <p style={{ fontSize: 13, color: '#666', marginTop: 16 }}>This is to certify that</p>
+
+                  {/* Name */}
+                  <p style={{ fontSize: 26, fontWeight: 700, color: '#1a1a1a', margin: '10px 0', fontStyle: 'italic' }}>
+                    {previewCert.participantName}
+                  </p>
+
+                  <p style={{ fontSize: 13, color: '#666' }}>has successfully participated in the webinar on</p>
+
+                  {/* Topic */}
+                  <p style={{ fontSize: 18, fontWeight: 600, color: '#2d5016', margin: '8px 0' }}>
+                    "{previewCert.webinarTitle}"
+                  </p>
+
+                  {/* Domain */}
+                  <p style={{ fontSize: 13, color: '#555' }}>
+                    Domain: <strong>{previewCert.webinarDomain}</strong>
+                  </p>
+
+                  {/* Date */}
+                  <p style={{ fontSize: 13, color: '#555', marginTop: 4 }}>
+                    held on <strong>{new Date(previewCert.webinarDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+                  </p>
+
+                  {/* Signatures */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 40, padding: '0 30px' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ width: 140, borderTop: '1.5px solid #999', marginBottom: 4 }} />
+                      <p style={{ fontSize: 10, color: '#888' }}>Webinar Coordinator</p>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ width: 140, borderTop: '1.5px solid #999', marginBottom: 4 }} />
+                      <p style={{ fontSize: 10, color: '#888' }}>Head of Department</p>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ width: 140, borderTop: '1.5px solid #999', marginBottom: 4 }} />
+                      <p style={{ fontSize: 10, color: '#888' }}>Principal</p>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="flex justify-end">

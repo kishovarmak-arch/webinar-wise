@@ -15,20 +15,19 @@ export default function Webinars() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const navigate = useNavigate();
+  const role = store.getRole();
+  const userDept = store.getUserDept();
 
   useEffect(() => { store.seedIfEmpty(); setWebinars(store.getWebinars()); }, []);
 
   const filtered = webinars.filter(w => {
     const matchSearch = w.title.toLowerCase().includes(search.toLowerCase()) || w.mentorName.toLowerCase().includes(search.toLowerCase());
     const matchFilter = filter === "all" || w.status === filter;
-    return matchSearch && matchFilter;
+    const matchDept = role === 'hod' ? w.department === userDept : true;
+    return matchSearch && matchFilter && matchDept;
   });
 
-  const handleDelete = (id: string) => {
-    store.deleteWebinar(id);
-    setWebinars(store.getWebinars());
-  };
-
+  const handleDelete = (id: string) => { store.deleteWebinar(id); setWebinars(store.getWebinars()); };
   const statusColor = (s: string) => s === 'upcoming' ? 'default' : s === 'completed' ? 'secondary' : s === 'live' ? 'destructive' : 'outline';
 
   return (
@@ -36,7 +35,7 @@ export default function Webinars() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Webinars</h1>
-          <p className="text-muted-foreground">Manage all your webinars</p>
+          <p className="text-muted-foreground">{role === 'hod' ? `Manage ${userDept} webinars` : 'Manage all webinars'}</p>
         </div>
         <Button asChild><Link to="/admin/webinars/create"><Plus className="mr-2 h-4 w-4" />Create Webinar</Link></Button>
       </div>
@@ -59,7 +58,7 @@ export default function Webinars() {
       </div>
 
       {filtered.length === 0 ? (
-        <Card><CardContent className="p-12 text-center text-muted-foreground">No webinars found. Create your first webinar!</CardContent></Card>
+        <Card><CardContent className="p-12 text-center text-muted-foreground">No webinars found.</CardContent></Card>
       ) : (
         <div className="grid gap-4">
           {filtered.map(w => (
@@ -77,6 +76,7 @@ export default function Webinars() {
                       <span>📅 {new Date(w.date).toLocaleDateString()}</span>
                       <span>🕐 {w.time}</span>
                       <span>🏢 {w.department}</span>
+                      <span>🌐 {w.domain}</span>
                       <span className="font-medium text-foreground">₹{w.registrationFee}</span>
                     </div>
                   </div>
@@ -97,7 +97,7 @@ export default function Webinars() {
                       <AlertDialogContent>
                         <AlertDialogHeader>
                           <AlertDialogTitle>Delete Webinar</AlertDialogTitle>
-                          <AlertDialogDescription>This will permanently delete "{w.title}" and all associated data.</AlertDialogDescription>
+                          <AlertDialogDescription>This will permanently delete "{w.title}".</AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
