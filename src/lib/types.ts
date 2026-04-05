@@ -1,3 +1,13 @@
+export type UserRole = 'admin' | 'hod' | 'student';
+
+export interface UserAccount {
+  email: string;
+  password: string;
+  role: UserRole;
+  name: string;
+  department?: string;
+}
+
 export interface Webinar {
   id: string;
   title: string;
@@ -6,12 +16,15 @@ export interface Webinar {
   mentorName: string;
   mentorPhoto: string;
   department: string;
+  domain: string;
   date: string;
   time: string;
   registrationFee: number;
   status: 'draft' | 'upcoming' | 'live' | 'completed';
   createdAt: string;
   registrationUrl: string;
+  platform: string;
+  teamsLink: string;
 }
 
 export interface Participant {
@@ -24,6 +37,9 @@ export interface Participant {
   department: string;
   year: string;
   registeredAt: string;
+  paymentVerified: boolean;
+  paymentScreenshot: string;
+  teamsLinkSent: boolean;
 }
 
 export interface AttendanceRecord {
@@ -33,6 +49,7 @@ export interface AttendanceRecord {
   participantId: string;
   markedAt: string;
   present: boolean;
+  email: string;
 }
 
 export interface Certificate {
@@ -43,6 +60,8 @@ export interface Certificate {
   participantName: string;
   webinarTitle: string;
   webinarDate: string;
+  webinarDomain: string;
+  webinarTopic: string;
   issuedAt: string;
 }
 

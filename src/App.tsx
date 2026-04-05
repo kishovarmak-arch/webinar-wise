@@ -17,6 +17,8 @@ import Certificates from "./pages/Certificates";
 import Emails from "./pages/Emails";
 import Feedback from "./pages/Feedback";
 import Analytics from "./pages/Analytics";
+import StudentDashboard from "./pages/StudentDashboard";
+import Payments from "./pages/Payments";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,14 +33,16 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register/:id" element={<PublicRegistration />} />
+          <Route path="/student" element={<StudentDashboard />} />
 
-          {/* Admin routes */}
+          {/* Admin/HOD routes */}
           <Route path="/admin" element={<AdminLayout><Dashboard /></AdminLayout>} />
           <Route path="/admin/webinars" element={<AdminLayout><Webinars /></AdminLayout>} />
           <Route path="/admin/webinars/create" element={<AdminLayout><WebinarForm /></AdminLayout>} />
           <Route path="/admin/webinars/:id/edit" element={<AdminLayout><WebinarForm /></AdminLayout>} />
           <Route path="/admin/webinars/:id/poster" element={<AdminLayout><PosterGenerator /></AdminLayout>} />
           <Route path="/admin/participants" element={<AdminLayout><Participants /></AdminLayout>} />
+          <Route path="/admin/payments" element={<AdminLayout><Payments /></AdminLayout>} />
           <Route path="/admin/attendance" element={<AdminLayout><Attendance /></AdminLayout>} />
           <Route path="/admin/certificates" element={<AdminLayout><Certificates /></AdminLayout>} />
           <Route path="/admin/emails" element={<AdminLayout><Emails /></AdminLayout>} />

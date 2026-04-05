@@ -1,40 +1,72 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { store } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ClipboardCheck, UserCheck, UserX, Download } from "lucide-react";
+import { ClipboardCheck, UserCheck, UserX, Download, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Attendance() {
   const [webinars, setWebinars] = useState(store.getWebinars());
   const [selectedWebinar, setSelectedWebinar] = useState("");
-  const [studentId, setStudentId] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { store.seedIfEmpty(); setWebinars(store.getWebinars()); }, []);
 
-  const webinar = store.getWebinar(selectedWebinar);
   const participants = store.getParticipants(selectedWebinar);
   const attendance = store.getAttendance(selectedWebinar);
 
-  const markPresent = () => {
-    if (!studentId || !selectedWebinar) { toast.error("Enter a Student ID"); return; }
-    const participant = participants.find(p => p.studentId === studentId);
-    if (!participant) { toast.error("Student ID not registered for this webinar. Only registered students can be marked present."); return; }
-    if (attendance.find(a => a.studentId === studentId && a.present)) { toast.info("Already marked present"); return; }
-    store.markAttendance({
-      id: crypto.randomUUID(),
-      webinarId: selectedWebinar,
-      studentId,
-      participantId: participant.id,
-      markedAt: new Date().toISOString(),
-      present: true,
-    });
-    setStudentId("");
-    toast.success(`${participant.name} marked present!`);
+  const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedWebinar) { toast.error("Select a webinar and file"); return; }
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+      // Expect CSV with email column — first column or column named "email"
+      const header = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+      const emailIdx = header.indexOf('email');
+      if (emailIdx === -1) {
+        toast.error("Excel/CSV must have an 'email' column");
+        return;
+      }
+
+      let matched = 0;
+      const records = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',').map(c => c.trim().replace(/"/g, ''));
+        const email = cols[emailIdx];
+        if (!email) continue;
+
+        const participant = participants.find(p => p.email.toLowerCase() === email.toLowerCase());
+        if (participant) {
+          records.push({
+            id: crypto.randomUUID(),
+            webinarId: selectedWebinar,
+            studentId: participant.studentId,
+            participantId: participant.id,
+            markedAt: new Date().toISOString(),
+            present: true,
+            email: participant.email,
+          });
+          matched++;
+        }
+      }
+
+      if (records.length > 0) {
+        store.bulkMarkAttendance(records);
+        setRefreshKey(k => k + 1);
+        toast.success(`${matched} students marked present from uploaded file`);
+      } else {
+        toast.error("No matching registered emails found in the uploaded file");
+      }
+    };
+    reader.readAsText(file);
+    if (fileRef.current) fileRef.current.value = '';
   };
 
   const presentCount = attendance.filter(a => a.present).length;
@@ -42,10 +74,10 @@ export default function Attendance() {
 
   const handleExport = () => {
     const rows = participants.map(p => {
-      const a = attendance.find(att => att.studentId === p.studentId);
-      return `${p.name},${p.studentId},${a?.present ? 'Present' : 'Absent'},${a?.markedAt || ''}`;
+      const a = attendance.find(att => att.email === p.email);
+      return `${p.name},${p.studentId},${p.email},${a?.present ? 'Present' : 'Absent'},${a?.markedAt || ''}`;
     });
-    const csv = ["Name,Student ID,Status,Marked At", ...rows].join("\n");
+    const csv = ["Name,Student ID,Email,Status,Marked At", ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -55,10 +87,10 @@ export default function Attendance() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" key={refreshKey}>
       <div>
         <h1 className="text-2xl font-bold">Attendance Tracking</h1>
-        <p className="text-muted-foreground">Mark and track webinar attendance</p>
+        <p className="text-muted-foreground">Upload attendance Excel/CSV file to mark attendance</p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
@@ -77,13 +109,18 @@ export default function Attendance() {
           </div>
 
           <Card>
-            <CardHeader><CardTitle className="text-lg">Mark Attendance</CardTitle></CardHeader>
-            <CardContent>
-              <div className="flex gap-3">
-                <Input placeholder="Enter Student ID (e.g. STU001)" value={studentId} onChange={e => setStudentId(e.target.value)} onKeyDown={e => e.key === 'Enter' && markPresent()} className="max-w-sm" />
-                <Button onClick={markPresent}>Mark Present</Button>
+            <CardHeader>
+              <CardTitle className="text-lg">Upload Attendance File</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">Upload a CSV/Excel file with an <strong>"email"</strong> column. Only registered emails will be marked present.</p>
+              <div className="flex gap-3 items-center">
+                <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" onChange={handleExcelUpload} className="text-sm" />
+                <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
+                  <Upload className="mr-1 h-3 w-3" />Upload
+                </Button>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">Only registered Student IDs can be marked present</p>
+              <p className="text-xs text-muted-foreground">Workflow: Upload attendance → Matching registered + attended emails → Certificate generation</p>
             </CardContent>
           </Card>
 
@@ -98,17 +135,19 @@ export default function Attendance() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Student ID</TableHead>
+                    <TableHead>Email</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Marked At</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {participants.map(p => {
-                    const a = attendance.find(att => att.studentId === p.studentId);
+                    const a = attendance.find(att => att.email === p.email);
                     return (
                       <TableRow key={p.id}>
                         <TableCell className="font-medium">{p.name}</TableCell>
                         <TableCell><Badge variant="outline">{p.studentId}</Badge></TableCell>
+                        <TableCell className="text-sm">{p.email}</TableCell>
                         <TableCell>
                           {a?.present ? <Badge className="bg-green-100 text-green-700">Present</Badge> : <Badge variant="secondary">Absent</Badge>}
                         </TableCell>

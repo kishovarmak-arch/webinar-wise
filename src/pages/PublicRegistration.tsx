@@ -40,6 +40,9 @@ export default function PublicRegistration() {
       webinarId: webinar.id,
       ...form,
       registeredAt: new Date().toISOString(),
+      paymentVerified: false,
+      paymentScreenshot: '',
+      teamsLinkSent: false,
     });
     setSubmitted(true);
     toast.success("Registration successful!");

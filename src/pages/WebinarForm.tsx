@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { store } from "@/lib/store";
 import { Webinar } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,34 +17,34 @@ export default function WebinarForm() {
   const navigate = useNavigate();
   const existing = id ? store.getWebinar(id) : undefined;
   const isEdit = !!existing;
+  const role = store.getRole();
+  const userDept = store.getUserDept();
 
   const [form, setForm] = useState<Partial<Webinar>>(existing || {
     title: "", topic: "", description: "", mentorName: "", mentorPhoto: "",
-    department: "Computer Science", date: "", time: "", registrationFee: 99, status: "draft",
+    department: role === 'hod' ? userDept : "Computer Science",
+    domain: "", date: "", time: "", registrationFee: 99, status: "draft",
+    platform: "Microsoft Teams", teamsLink: "",
   });
 
   const update = (key: string, val: any) => setForm(f => ({ ...f, [key]: val }));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title || !form.topic || !form.mentorName || !form.date || !form.time) {
-      toast.error("Please fill all required fields");
-      return;
+    if (!form.title || !form.topic || !form.mentorName || !form.date || !form.time || !form.domain) {
+      toast.error("Please fill all required fields"); return;
     }
     const webinar: Webinar = {
       id: existing?.id || crypto.randomUUID(),
-      title: form.title!,
-      topic: form.topic!,
-      description: form.description || "",
-      mentorName: form.mentorName!,
-      mentorPhoto: form.mentorPhoto || "",
-      department: form.department || "Computer Science",
-      date: form.date!,
-      time: form.time!,
-      registrationFee: 99,
-      status: (form.status as Webinar['status']) || "draft",
+      title: form.title!, topic: form.topic!, description: form.description || "",
+      mentorName: form.mentorName!, mentorPhoto: form.mentorPhoto || "",
+      department: role === 'hod' ? userDept : (form.department || "Computer Science"),
+      domain: form.domain!, date: form.date!, time: form.time!,
+      registrationFee: 99, status: (form.status as Webinar['status']) || "draft",
       createdAt: existing?.createdAt || new Date().toISOString(),
       registrationUrl: `/register/${existing?.id || 'new'}`,
+      platform: form.platform || 'Microsoft Teams',
+      teamsLink: form.teamsLink || '',
     };
     if (!existing) webinar.registrationUrl = `/register/${webinar.id}`;
     store.saveWebinar(webinar);
@@ -66,7 +66,7 @@ export default function WebinarForm() {
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-4 w-4" /></Button>
         <div>
           <h1 className="text-2xl font-bold">{isEdit ? "Edit Webinar" : "Create Webinar"}</h1>
-          <p className="text-muted-foreground">{isEdit ? "Update webinar details" : "Fill in the details to create a new webinar"}</p>
+          <p className="text-muted-foreground">{isEdit ? "Update webinar details" : "Fill in the details"}</p>
         </div>
       </div>
 
@@ -76,18 +76,26 @@ export default function WebinarForm() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2 sm:col-span-2">
                 <label className="text-sm font-medium">Webinar Title *</label>
-                <Input value={form.title} onChange={e => update("title", e.target.value)} placeholder="e.g. Introduction to AI" required />
+                <Input value={form.title} onChange={e => update("title", e.target.value)} placeholder="e.g. Webinar on Cybersecurity" required />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Topic *</label>
-                <Input value={form.topic} onChange={e => update("topic", e.target.value)} placeholder="e.g. Artificial Intelligence" required />
+                <Input value={form.topic} onChange={e => update("topic", e.target.value)} placeholder="e.g. Cybersecurity" required />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Department</label>
-                <Select value={form.department} onValueChange={v => update("department", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
-                </Select>
+                <label className="text-sm font-medium">Domain *</label>
+                <Input value={form.domain} onChange={e => update("domain", e.target.value)} placeholder="e.g. Information Security" required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Department {role === 'hod' ? '(Your Dept)' : '*'}</label>
+                {role === 'hod' ? (
+                  <Input value={userDept} disabled className="bg-muted" />
+                ) : (
+                  <Select value={form.department} onValueChange={v => update("department", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
+                  </Select>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Mentor Name *</label>
@@ -109,7 +117,14 @@ export default function WebinarForm() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Registration Fee</label>
                 <Input value="₹99" disabled className="bg-muted" />
-                <p className="text-xs text-muted-foreground">Fixed at ₹99</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Platform</label>
+                <Input value={form.platform} onChange={e => update("platform", e.target.value)} placeholder="Microsoft Teams" />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <label className="text-sm font-medium">Teams/Meeting Link</label>
+                <Input value={form.teamsLink} onChange={e => update("teamsLink", e.target.value)} placeholder="https://teams.microsoft.com/..." />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Status</label>
